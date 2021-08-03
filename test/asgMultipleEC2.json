@@ -1,0 +1,70 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Resources":{
+    "myLaunchTemplate":{
+      "Type":"AWS::EC2::LaunchTemplate",
+      "Properties":{
+        "LaunchTemplateName":{"Fn::Sub":"${AWS::StackName}-launch-template"},
+        "LaunchTemplateData":{
+          "BlockDeviceMappings":[{
+            "Ebs":{
+              "VolumeSize":"22",
+              "VolumeType":"gp3",
+              "DeleteOnTermination": true,
+              "Encrypted": true
+            },
+            "DeviceName":"/dev/xvdcz"
+          }],
+          "ImageId":"ami-02354e95b39ca8dec",
+          "InstanceType":"t3.micro",
+          "KeyName":"my-key-pair-useast1",
+          "Monitoring":{"Enabled":true},
+          "SecurityGroupIds":["sg-7c227019", "sg-903004f8"]
+        }
+      }
+    },
+    "myASG":{
+      "Type":"AWS::AutoScaling::AutoScalingGroup",
+      "Properties":{
+        "AutoScalingGroupName":"myASG",
+        "MinSize": "1",
+        "MaxSize": "6",
+        "DesiredCapacity": "2",
+        "HealthCheckGracePeriod":300,
+        "LaunchTemplate":{
+          "LaunchTemplateId":{
+            "Ref":"myLaunchTemplate"
+          },
+          "Version":{
+            "Fn::GetAtt":[
+              "myLaunchTemplate",
+              "LatestVersionNumber"
+            ]
+          }
+        },
+        "VPCZoneIdentifier":[ { "Ref" : "myPublicSubnet1" }, { "Ref" : "myPublicSubnet2" } ],
+        "MetricsCollection":[
+          {
+            "Granularity":"1Minute",
+            "Metrics":[
+              "GroupMinSize",
+              "GroupMaxSize"
+            ]
+          }
+        ],
+        "Tags":[
+          {
+            "Key":"Environment",
+            "Value":"Production",
+            "PropagateAtLaunch":"true"
+          },
+          {
+            "Key":"Purpose",
+            "Value":"WebServerGroup",
+            "PropagateAtLaunch":"false"
+          }
+        ]
+      }
+    }
+  }
+}
